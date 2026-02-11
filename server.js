@@ -6,10 +6,17 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// GA4 Data API client - uses credentials.json in project root
-const analyticsDataClient = new BetaAnalyticsDataClient({
-  keyFilename: path.join(__dirname, 'credentials.json'),
-});
+// GA4 Data API client
+// Supports both: credentials.json file (local) or GOOGLE_CREDENTIALS env var (Railway/cloud)
+let analyticsDataClient;
+if (process.env.GOOGLE_CREDENTIALS) {
+  const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+  analyticsDataClient = new BetaAnalyticsDataClient({ credentials });
+} else {
+  analyticsDataClient = new BetaAnalyticsDataClient({
+    keyFilename: path.join(__dirname, 'credentials.json'),
+  });
+}
 
 // The GA4 property ID - numeric ID from the property settings
 // You can find it in GA4 Admin > Property Settings > Property ID
