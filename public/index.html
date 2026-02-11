@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>דשבורד מקורות רכישה - OptiStore</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>דשבורד מקורות רכישה</h1>
+      <p class="subtitle">OptiStore - Google Analytics 4</p>
+    </header>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="date-range">
+        <label>
+          מתאריך:
+          <input type="date" id="startDate">
+        </label>
+        <label>
+          עד תאריך:
+          <input type="date" id="endDate">
+        </label>
+        <button id="fetchBtn" class="btn-primary">הצג נתונים</button>
+      </div>
+      <div class="actions">
+        <input type="text" id="searchInput" placeholder="חיפוש..." class="search-input">
+        <button id="exportBtn" class="btn-secondary">ייצוא CSV</button>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards" id="summaryCards" style="display:none;">
+      <div class="card">
+        <div class="card-label">סה"כ הכנסות</div>
+        <div class="card-value" id="totalRevenue">-</div>
+      </div>
+      <div class="card">
+        <div class="card-label">עסקאות</div>
+        <div class="card-value" id="totalTransactions">-</div>
+      </div>
+      <div class="card">
+        <div class="card-label">פריטים שנמכרו</div>
+        <div class="card-value" id="totalItems">-</div>
+      </div>
+      <div class="card">
+        <div class="card-label">ממוצע לעסקה</div>
+        <div class="card-value" id="avgTransaction">-</div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" style="display:none;">
+      <div class="spinner"></div>
+      <p>טוען נתונים מ-Google Analytics...</p>
+    </div>
+
+    <!-- Error -->
+    <div id="errorMsg" class="error-msg" style="display:none;"></div>
+
+    <!-- Data Table -->
+    <div class="table-wrapper" id="tableWrapper" style="display:none;">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th data-col="date" class="sortable">תאריך</th>
+            <th data-col="transactionId" class="sortable">מזהה עסקה</th>
+            <th data-col="firstSource" class="sortable">מקור ראשון</th>
+            <th data-col="firstMedium" class="sortable">ערוץ ראשון</th>
+            <th data-col="firstCampaign" class="sortable">קמפיין ראשון</th>
+            <th data-col="source" class="sortable">מקור סשן</th>
+            <th data-col="medium" class="sortable">ערוץ סשן</th>
+            <th data-col="campaign" class="sortable">קמפיין (UTM)</th>
+            <th data-col="itemName" class="sortable">שם מוצר</th>
+            <th data-col="revenue" class="sortable">הכנסה</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <p>לא נמצאו רכישות בטווח התאריכים שנבחר</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
