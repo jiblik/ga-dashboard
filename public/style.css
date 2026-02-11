@@ -335,18 +335,6 @@ td.empty-utm {
   color: #d1d5db;
 }
 
-.landing-page-cell {
-  max-width: 250px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  direction: ltr;
-  text-align: right;
-  font-size: 12px;
-  color: #4f46e5;
-  cursor: default;
-}
-
 /* Source color badges */
 .source-badge {
   display: inline-block;

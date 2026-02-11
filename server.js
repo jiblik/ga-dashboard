@@ -49,7 +49,6 @@ app.get('/api/report', async (req, res) => {
         { name: 'sessionSource' },
         { name: 'sessionMedium' },
         { name: 'sessionCampaignName' },
-        { name: 'landingPagePlusQueryString' },
         { name: 'itemName' },
       ],
       metrics: [
@@ -87,7 +86,6 @@ app.get('/api/report', async (req, res) => {
       const sessSource = dims[5];
       const sessMedium = dims[6];
       const sessCampaign = dims[7];
-      const landingPage = dims[8];
 
       const notSet = (v) => !v || v === '(not set)' || v === '(none)';
 
@@ -100,8 +98,7 @@ app.get('/api/report', async (req, res) => {
         source: notSet(sessSource) ? firstSource : sessSource,
         medium: notSet(sessMedium) ? firstMedium : sessMedium,
         campaign: notSet(sessCampaign) ? firstCampaign : sessCampaign,
-        landingPage: landingPage,
-        itemName: dims[9],
+        itemName: dims[8],
         revenue: parseFloat(metrics[0]) || 0,
       };
     });
