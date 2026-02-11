@@ -37,16 +37,7 @@ app.get('/api/report', async (req, res) => {
       return res.status(500).json({ error: 'GA4_PROPERTY_ID is not configured in .env' });
     }
 
-    // GA4 limits to 9 dimensions per request, so we split into 2 calls
-    const txFilter = {
-      filter: {
-        fieldName: 'transactionId',
-        stringFilter: { matchType: 'FULL_REGEXP', value: '.+' },
-      },
-    };
-
-    // Request 1: Source + item data (9 dims)
-    const [mainResponse] = await analyticsDataClient.runReport({
+    const [response] = await analyticsDataClient.runReport({
       property: PROPERTY_ID,
       dateRanges: [{ startDate, endDate }],
       dimensions: [
@@ -58,54 +49,47 @@ app.get('/api/report', async (req, res) => {
         { name: 'sessionSource' },
         { name: 'sessionMedium' },
         { name: 'sessionCampaignName' },
+        { name: 'landingPagePlusQueryString' },
         { name: 'itemName' },
       ],
-      metrics: [{ name: 'itemRevenue' }],
-      dimensionFilter: txFilter,
-      orderBys: [{ dimension: { dimensionName: 'date' }, desc: true }],
-      limit: 10000,
-    });
-
-    // Request 2: Landing page per transaction
-    const [lpResponse] = await analyticsDataClient.runReport({
-      property: PROPERTY_ID,
-      dateRanges: [{ startDate, endDate }],
-      dimensions: [
-        { name: 'transactionId' },
-        { name: 'landingPagePlusQueryString' },
+      metrics: [
+        { name: 'itemRevenue' },
       ],
-      metrics: [{ name: 'itemRevenue' }],
-      dimensionFilter: txFilter,
+      dimensionFilter: {
+        filter: {
+          fieldName: 'transactionId',
+          stringFilter: {
+            matchType: 'FULL_REGEXP',
+            value: '.+',
+          },
+        },
+      },
+      orderBys: [
+        { dimension: { dimensionName: 'date' }, desc: true },
+      ],
       limit: 10000,
     });
 
-    // Build landing page lookup: transactionId -> landingPage
-    const lpMap = {};
-    (lpResponse.rows || []).forEach((row) => {
-      const txId = row.dimensionValues[0].value;
-      const lp = row.dimensionValues[1].value;
-      if (!lpMap[txId] || lp !== '(not set)') {
-        lpMap[txId] = lp;
-      }
-    });
-
-    const notSet = (v) => !v || v === '(not set)' || v === '(none)';
-
-    const rows = (mainResponse.rows || []).map((row) => {
+    const rows = (response.rows || []).map((row) => {
       const dims = row.dimensionValues.map((d) => d.value);
       const metrics = row.metricValues.map((m) => m.value);
 
+      // Format date from YYYYMMDD to YYYY-MM-DD
       const rawDate = dims[0];
       const formattedDate = rawDate.length === 8
         ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}`
         : rawDate;
 
+      // Use firstUser data, fall back to session data if firstUser is (not set)
       const firstSource = dims[2];
       const firstMedium = dims[3];
       const firstCampaign = dims[4];
       const sessSource = dims[5];
       const sessMedium = dims[6];
       const sessCampaign = dims[7];
+      const landingPage = dims[8];
+
+      const notSet = (v) => !v || v === '(not set)' || v === '(none)';
 
       return {
         date: formattedDate,
@@ -116,8 +100,8 @@ app.get('/api/report', async (req, res) => {
         source: notSet(sessSource) ? firstSource : sessSource,
         medium: notSet(sessMedium) ? firstMedium : sessMedium,
         campaign: notSet(sessCampaign) ? firstCampaign : sessCampaign,
-        landingPage: lpMap[dims[1]] || '(not set)',
-        itemName: dims[8],
+        landingPage: landingPage,
+        itemName: dims[9],
         revenue: parseFloat(metrics[0]) || 0,
       };
     });
