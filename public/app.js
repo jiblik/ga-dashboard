@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const chartsSection = document.getElementById('chartsSection');
   const sourceSummary = document.getElementById('sourceSummary');
   const sourceSummaryBody = document.getElementById('sourceSummaryBody');
+  const landingPageSummary = document.getElementById('landingPageSummary');
+  const landingPageSummaryBody = document.getElementById('landingPageSummaryBody');
   const paginationInfo = document.getElementById('paginationInfo');
   const paginationEl = document.getElementById('pagination');
 
@@ -102,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryCards.style.display = 'none';
     chartsSection.style.display = 'none';
     sourceSummary.style.display = 'none';
+    landingPageSummary.style.display = 'none';
     errorMsg.style.display = 'none';
     emptyState.style.display = 'none';
     fetchBtn.disabled = true;
@@ -134,10 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryCards.style.display = 'grid';
         chartsSection.style.display = 'block';
         sourceSummary.style.display = 'block';
+        landingPageSummary.style.display = 'block';
         tableWrapper.style.display = 'block';
         applySort();
         renderTable();
         renderSourceSummary();
+        renderLandingPageSummary();
         renderCharts();
       }
     } catch (err) {
@@ -244,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${sourceBadge(row.source)}</td>
         <td class="${utmEmpty(row.medium) ? 'empty-utm' : ''}">${utmEmpty(row.medium) ? '-' : escapeHtml(row.medium)}</td>
         <td class="${utmEmpty(row.campaign) ? 'empty-utm' : ''}">${utmEmpty(row.campaign) ? '-' : escapeHtml(row.campaign)}</td>
+        <td class="landing-page-cell" title="${escapeHtml(row.landingPage || '')}">${utmEmpty(row.landingPage) ? '-' : escapeHtml(shortenUrl(row.landingPage))}</td>
         <td>${escapeHtml(row.itemName)}</td>
         <td class="revenue">${formatCurrency(row.revenue)}</td>
       `;
@@ -466,6 +472,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function shortenUrl(url) {
+    if (!url) return '';
+    // Remove query string for display, keep path
+    const path = url.split('?')[0];
+    // If path is too long, truncate
+    if (path.length > 50) return path.slice(0, 47) + '...';
+    return path;
+  }
+
+  // Landing Page Summary Table
+  function renderLandingPageSummary() {
+    landingPageSummaryBody.innerHTML = '';
+
+    const notSet = (v) => !v || v === '(not set)' || v === '(none)';
+
+    // Group by landing page (without query string)
+    const groups = {};
+    allRows.forEach((row) => {
+      const lp = notSet(row.landingPage) ? '(not set)' : row.landingPage.split('?')[0];
+      if (!groups[lp]) {
+        groups[lp] = { landingPage: lp, revenue: 0, transactions: new Set() };
+      }
+      groups[lp].revenue += row.revenue;
+      groups[lp].transactions.add(row.transactionId);
+    });
+
+    const totalRevenue = allRows.reduce((sum, r) => sum + r.revenue, 0);
+
+    // Sort by revenue descending, show top 20
+    const sorted = Object.values(groups).sort((a, b) => b.revenue - a.revenue).slice(0, 20);
+
+    sorted.forEach((g) => {
+      const pct = totalRevenue > 0 ? (g.revenue / totalRevenue * 100) : 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="landing-page-cell" title="${escapeHtml(g.landingPage)}">${escapeHtml(g.landingPage)}</td>
+        <td>${g.transactions.size.toLocaleString()}</td>
+        <td class="revenue">${formatCurrency(g.revenue)}</td>
+        <td><span class="pct-bar" style="width:${Math.max(pct, 1)}%"></span> ${pct.toFixed(1)}%</td>
+      `;
+      landingPageSummaryBody.appendChild(tr);
+    });
+  }
+
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
@@ -476,8 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
   exportBtn.addEventListener('click', () => {
     if (filteredRows.length === 0) return;
 
-    const headers = ['\u05EA\u05D0\u05E8\u05D9\u05DA', '\u05DE\u05D6\u05D4\u05D4 \u05E2\u05E1\u05E7\u05D4', '\u05DE\u05E7\u05D5\u05E8 \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05E2\u05E8\u05D5\u05E5 \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05E7\u05DE\u05E4\u05D9\u05D9\u05DF \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05DE\u05E7\u05D5\u05E8 \u05E1\u05E9\u05DF', '\u05E2\u05E8\u05D5\u05E5 \u05E1\u05E9\u05DF', '\u05E7\u05DE\u05E4\u05D9\u05D9\u05DF (UTM)', '\u05E9\u05DD \u05DE\u05D5\u05E6\u05E8', '\u05D4\u05DB\u05E0\u05E1\u05D4'];
-    const keys = ['date', 'transactionId', 'firstSource', 'firstMedium', 'firstCampaign', 'source', 'medium', 'campaign', 'itemName', 'revenue'];
+    const headers = ['\u05EA\u05D0\u05E8\u05D9\u05DA', '\u05DE\u05D6\u05D4\u05D4 \u05E2\u05E1\u05E7\u05D4', '\u05DE\u05E7\u05D5\u05E8 \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05E2\u05E8\u05D5\u05E5 \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05E7\u05DE\u05E4\u05D9\u05D9\u05DF \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05DE\u05E7\u05D5\u05E8 \u05E1\u05E9\u05DF', '\u05E2\u05E8\u05D5\u05E5 \u05E1\u05E9\u05DF', '\u05E7\u05DE\u05E4\u05D9\u05D9\u05DF (UTM)', '\u05D3\u05E3 \u05E0\u05D7\u05D9\u05EA\u05D4', '\u05E9\u05DD \u05DE\u05D5\u05E6\u05E8', '\u05D4\u05DB\u05E0\u05E1\u05D4'];
+    const keys = ['date', 'transactionId', 'firstSource', 'firstMedium', 'firstCampaign', 'source', 'medium', 'campaign', 'landingPage', 'itemName', 'revenue'];
 
     const csvRows = [
       // BOM for Hebrew support in Excel
