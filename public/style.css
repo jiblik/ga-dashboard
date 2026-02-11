@@ -158,12 +158,111 @@ header h1 {
   color: #1a1a2e;
 }
 
+/* Charts */
+.charts-section {
+  margin-bottom: 24px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.chart-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.chart-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+}
+
+/* Source Summary */
+.source-summary {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.source-summary h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.source-summary table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.source-summary thead th {
+  background: #f9fafb;
+  padding: 10px 16px;
+  text-align: right;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.source-summary tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.source-summary tbody tr:hover {
+  background: #f9fafb;
+}
+
+.source-summary .revenue {
+  font-weight: 600;
+  color: #059669;
+  direction: ltr;
+  text-align: right;
+}
+
+.source-summary .pct-bar {
+  display: inline-block;
+  height: 8px;
+  border-radius: 4px;
+  background: #4f46e5;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 /* Table */
 .table-wrapper {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow-x: auto;
+}
+
+.table-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 0;
+}
+
+.table-header-bar h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #6b7280;
 }
 
 table {
@@ -190,7 +289,7 @@ th.sortable {
 }
 
 th.sortable::after {
-  content: '⇅';
+  content: '\21C5';
   position: absolute;
   left: 8px;
   top: 50%;
@@ -200,13 +299,13 @@ th.sortable::after {
 }
 
 th.sortable.asc::after {
-  content: '↑';
+  content: '\2191';
   opacity: 1;
   color: #4f46e5;
 }
 
 th.sortable.desc::after {
-  content: '↓';
+  content: '\2193';
   opacity: 1;
   color: #4f46e5;
 }
@@ -234,6 +333,64 @@ td.revenue {
 
 td.empty-utm {
   color: #d1d5db;
+}
+
+/* Source color badges */
+.source-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.source-google { background: #e8f5e9; color: #2e7d32; }
+.source-facebook, .source-fb, .source-meta, .source-ig, .source-instagram { background: #e3f2fd; color: #1565c0; }
+.source-direct { background: #f3e5f5; color: #7b1fa2; }
+.source-tiktok { background: #fce4ec; color: #c62828; }
+.source-email, .source-newsletter, .source-mailchimp { background: #fff3e0; color: #e65100; }
+.source-bing { background: #e0f2f1; color: #00695c; }
+.source-youtube { background: #ffebee; color: #b71c1c; }
+.source-twitter, .source-x { background: #e8eaf6; color: #283593; }
+.source-default { background: #f5f5f5; color: #616161; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 20px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.pagination button:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.pagination button.active {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Loading */
@@ -297,5 +454,9 @@ td.empty-utm {
 
   .summary-cards {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
   }
 }

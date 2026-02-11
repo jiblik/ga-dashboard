@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>דשבורד מקורות רכישה - OptiStore</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -61,8 +62,43 @@
     <!-- Error -->
     <div id="errorMsg" class="error-msg" style="display:none;"></div>
 
+    <!-- Charts -->
+    <div class="charts-section" id="chartsSection" style="display:none;">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>הכנסות לפי מקור</h3>
+          <canvas id="pieChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>הכנסות לפי יום</h3>
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Source Summary Table -->
+    <div class="source-summary" id="sourceSummary" style="display:none;">
+      <h3>סיכום לפי מקור</h3>
+      <table id="sourceSummaryTable">
+        <thead>
+          <tr>
+            <th>מקור</th>
+            <th>ערוץ</th>
+            <th>עסקאות</th>
+            <th>הכנסה</th>
+            <th>% מההכנסות</th>
+          </tr>
+        </thead>
+        <tbody id="sourceSummaryBody"></tbody>
+      </table>
+    </div>
+
     <!-- Data Table -->
     <div class="table-wrapper" id="tableWrapper" style="display:none;">
+      <div class="table-header-bar">
+        <h3>פירוט רכישות</h3>
+        <div class="pagination-info" id="paginationInfo"></div>
+      </div>
       <table id="dataTable">
         <thead>
           <tr>
@@ -80,6 +116,7 @@
         </thead>
         <tbody id="tableBody"></tbody>
       </table>
+      <div class="pagination" id="pagination"></div>
     </div>
 
     <!-- Empty state -->

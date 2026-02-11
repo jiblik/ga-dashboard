@@ -10,11 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const errorMsg = document.getElementById('errorMsg');
   const tableWrapper = document.getElementById('tableWrapper');
   const emptyState = document.getElementById('emptyState');
+  const chartsSection = document.getElementById('chartsSection');
+  const sourceSummary = document.getElementById('sourceSummary');
+  const sourceSummaryBody = document.getElementById('sourceSummaryBody');
+  const paginationInfo = document.getElementById('paginationInfo');
+  const paginationEl = document.getElementById('pagination');
 
   let allRows = [];
   let filteredRows = [];
   let sortCol = 'date';
   let sortDir = 'desc';
+  let currentPage = 1;
+  const rowsPerPage = 50;
+
+  let pieChart = null;
+  let lineChart = null;
 
   // Set default dates: last 30 days
   const today = new Date();
@@ -28,18 +38,61 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function formatCurrency(amount) {
-    return '₪' + amount.toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return '\u20AA' + amount.toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // Source color mapping
+  const sourceColors = {
+    google: { bg: '#e8f5e9', text: '#2e7d32', chart: '#4caf50' },
+    facebook: { bg: '#e3f2fd', text: '#1565c0', chart: '#1877f2' },
+    fb: { bg: '#e3f2fd', text: '#1565c0', chart: '#1877f2' },
+    meta: { bg: '#e3f2fd', text: '#1565c0', chart: '#1877f2' },
+    ig: { bg: '#e3f2fd', text: '#1565c0', chart: '#1877f2' },
+    instagram: { bg: '#e3f2fd', text: '#1565c0', chart: '#1877f2' },
+    direct: { bg: '#f3e5f5', text: '#7b1fa2', chart: '#9c27b0' },
+    '(direct)': { bg: '#f3e5f5', text: '#7b1fa2', chart: '#9c27b0' },
+    tiktok: { bg: '#fce4ec', text: '#c62828', chart: '#fe2c55' },
+    email: { bg: '#fff3e0', text: '#e65100', chart: '#ff9800' },
+    newsletter: { bg: '#fff3e0', text: '#e65100', chart: '#ff9800' },
+    mailchimp: { bg: '#fff3e0', text: '#e65100', chart: '#ff9800' },
+    bing: { bg: '#e0f2f1', text: '#00695c', chart: '#009688' },
+    youtube: { bg: '#ffebee', text: '#b71c1c', chart: '#ff0000' },
+    twitter: { bg: '#e8eaf6', text: '#283593', chart: '#1da1f2' },
+    x: { bg: '#e8eaf6', text: '#283593', chart: '#1da1f2' },
+  };
+
+  const defaultColor = { bg: '#f5f5f5', text: '#616161', chart: '#9e9e9e' };
+
+  // Predefined chart colors for sources without a specific mapping
+  const chartPalette = [
+    '#4caf50', '#1877f2', '#9c27b0', '#fe2c55', '#ff9800',
+    '#009688', '#ff0000', '#1da1f2', '#795548', '#607d8b',
+    '#e91e63', '#00bcd4', '#8bc34a', '#ff5722', '#3f51b5',
+  ];
+
+  function getSourceColor(source) {
+    const key = (source || '').toLowerCase().replace(/[^a-z0-9()]/g, '');
+    return sourceColors[key] || defaultColor;
+  }
+
+  function getSourceBadgeClass(source) {
+    const key = (source || '').toLowerCase().replace(/[^a-z]/g, '');
+    const known = ['google', 'facebook', 'fb', 'meta', 'ig', 'instagram', 'direct', 'tiktok', 'email', 'newsletter', 'mailchimp', 'bing', 'youtube', 'twitter', 'x'];
+    return known.includes(key) ? `source-badge source-${key}` : 'source-badge source-default';
   }
 
   // Fetch data
   fetchBtn.addEventListener('click', fetchData);
+
+  // Auto-load on page open
+  fetchData();
 
   async function fetchData() {
     const startDate = startDateInput.value;
     const endDate = endDateInput.value;
 
     if (!startDate || !endDate) {
-      showError('יש לבחור תאריך התחלה ותאריך סיום');
+      showError('\u05D9\u05E9 \u05DC\u05D1\u05D7\u05D5\u05E8 \u05EA\u05D0\u05E8\u05D9\u05DA \u05D4\u05EA\u05D7\u05DC\u05D4 \u05D5\u05EA\u05D0\u05E8\u05D9\u05DA \u05E1\u05D9\u05D5\u05DD');
       return;
     }
 
@@ -47,6 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loading.style.display = 'block';
     tableWrapper.style.display = 'none';
     summaryCards.style.display = 'none';
+    chartsSection.style.display = 'none';
+    sourceSummary.style.display = 'none';
     errorMsg.style.display = 'none';
     emptyState.style.display = 'none';
     fetchBtn.disabled = true;
@@ -61,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       allRows = data.rows;
       filteredRows = [...allRows];
+      currentPage = 1;
 
       // Update summary
       document.getElementById('totalRevenue').textContent = formatCurrency(data.totals.totalRevenue);
@@ -76,9 +132,13 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyState.style.display = 'block';
       } else {
         summaryCards.style.display = 'grid';
+        chartsSection.style.display = 'block';
+        sourceSummary.style.display = 'block';
         tableWrapper.style.display = 'block';
         applySort();
         renderTable();
+        renderSourceSummary();
+        renderCharts();
       }
     } catch (err) {
       showError(err.message);
@@ -105,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         )
       );
     }
+    currentPage = 1;
     applySort();
     renderTable();
   });
@@ -126,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       th.classList.add(sortDir);
 
+      currentPage = 1;
       applySort();
       renderTable();
     });
@@ -136,8 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
       let valA = a[sortCol];
       let valB = b[sortCol];
 
-      // Numeric sort for revenue and quantity
-      if (sortCol === 'revenue' || sortCol === 'quantity') {
+      // Numeric sort for revenue
+      if (sortCol === 'revenue') {
         valA = Number(valA);
         valB = Number(valB);
       } else {
@@ -154,24 +216,253 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderTable() {
     tableBody.innerHTML = '';
 
-    filteredRows.forEach((row) => {
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+    if (currentPage > totalPages) currentPage = totalPages || 1;
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = Math.min(start + rowsPerPage, filteredRows.length);
+    const pageRows = filteredRows.slice(start, end);
+
+    paginationInfo.textContent = `${start + 1}-${end} \u05DE\u05EA\u05D5\u05DA ${filteredRows.length}`;
+
+    pageRows.forEach((row) => {
       const tr = document.createElement('tr');
 
       const utmEmpty = (val) => (!val || val === '(not set)' || val === '(none)');
 
+      const sourceBadge = (val) => {
+        if (utmEmpty(val)) return '<span class="empty-utm">-</span>';
+        return `<span class="${getSourceBadgeClass(val)}">${escapeHtml(val)}</span>`;
+      };
+
       tr.innerHTML = `
         <td>${escapeHtml(row.date)}</td>
         <td>${escapeHtml(row.transactionId)}</td>
-        <td class="${utmEmpty(row.firstSource) ? 'empty-utm' : ''}">${utmEmpty(row.firstSource) ? '-' : escapeHtml(row.firstSource)}</td>
+        <td>${sourceBadge(row.firstSource)}</td>
         <td class="${utmEmpty(row.firstMedium) ? 'empty-utm' : ''}">${utmEmpty(row.firstMedium) ? '-' : escapeHtml(row.firstMedium)}</td>
         <td class="${utmEmpty(row.firstCampaign) ? 'empty-utm' : ''}">${utmEmpty(row.firstCampaign) ? '-' : escapeHtml(row.firstCampaign)}</td>
-        <td class="${utmEmpty(row.source) ? 'empty-utm' : ''}">${utmEmpty(row.source) ? '-' : escapeHtml(row.source)}</td>
+        <td>${sourceBadge(row.source)}</td>
         <td class="${utmEmpty(row.medium) ? 'empty-utm' : ''}">${utmEmpty(row.medium) ? '-' : escapeHtml(row.medium)}</td>
         <td class="${utmEmpty(row.campaign) ? 'empty-utm' : ''}">${utmEmpty(row.campaign) ? '-' : escapeHtml(row.campaign)}</td>
         <td>${escapeHtml(row.itemName)}</td>
         <td class="revenue">${formatCurrency(row.revenue)}</td>
       `;
       tableBody.appendChild(tr);
+    });
+
+    renderPagination(totalPages);
+  }
+
+  function renderPagination(totalPages) {
+    paginationEl.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    // Previous button
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = '\u2190';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.addEventListener('click', () => { currentPage--; renderTable(); });
+    paginationEl.appendChild(prevBtn);
+
+    // Page buttons
+    const maxButtons = 7;
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    if (endPage - startPage < maxButtons - 1) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    if (startPage > 1) {
+      addPageBtn(1);
+      if (startPage > 2) {
+        const dots = document.createElement('span');
+        dots.textContent = '...';
+        dots.style.padding = '0 8px';
+        dots.style.color = '#9ca3af';
+        paginationEl.appendChild(dots);
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      addPageBtn(i);
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        const dots = document.createElement('span');
+        dots.textContent = '...';
+        dots.style.padding = '0 8px';
+        dots.style.color = '#9ca3af';
+        paginationEl.appendChild(dots);
+      }
+      addPageBtn(totalPages);
+    }
+
+    // Next button
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = '\u2192';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.addEventListener('click', () => { currentPage++; renderTable(); });
+    paginationEl.appendChild(nextBtn);
+
+    function addPageBtn(page) {
+      const btn = document.createElement('button');
+      btn.textContent = page;
+      if (page === currentPage) btn.classList.add('active');
+      btn.addEventListener('click', () => { currentPage = page; renderTable(); });
+      paginationEl.appendChild(btn);
+    }
+  }
+
+  // Source Summary Table
+  function renderSourceSummary() {
+    sourceSummaryBody.innerHTML = '';
+
+    // Group by source + medium
+    const groups = {};
+    allRows.forEach((row) => {
+      const src = row.firstSource || '(not set)';
+      const med = row.firstMedium || '(not set)';
+      const key = `${src}|||${med}`;
+      if (!groups[key]) {
+        groups[key] = { source: src, medium: med, revenue: 0, transactions: new Set() };
+      }
+      groups[key].revenue += row.revenue;
+      groups[key].transactions.add(row.transactionId);
+    });
+
+    const totalRevenue = allRows.reduce((sum, r) => sum + r.revenue, 0);
+
+    // Sort by revenue descending
+    const sorted = Object.values(groups).sort((a, b) => b.revenue - a.revenue);
+
+    sorted.forEach((g) => {
+      const pct = totalRevenue > 0 ? (g.revenue / totalRevenue * 100) : 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="${getSourceBadgeClass(g.source)}">${escapeHtml(g.source)}</span></td>
+        <td>${escapeHtml(g.medium)}</td>
+        <td>${g.transactions.size.toLocaleString()}</td>
+        <td class="revenue">${formatCurrency(g.revenue)}</td>
+        <td><span class="pct-bar" style="width:${Math.max(pct, 1)}%"></span> ${pct.toFixed(1)}%</td>
+      `;
+      sourceSummaryBody.appendChild(tr);
+    });
+  }
+
+  // Charts
+  function renderCharts() {
+    renderPieChart();
+    renderLineChart();
+  }
+
+  function renderPieChart() {
+    // Group by source
+    const groups = {};
+    allRows.forEach((row) => {
+      const src = row.firstSource || '(not set)';
+      if (!groups[src]) groups[src] = 0;
+      groups[src] += row.revenue;
+    });
+
+    const sorted = Object.entries(groups).sort((a, b) => b[1] - a[1]);
+    // Show top 8, rest as "other"
+    const top = sorted.slice(0, 8);
+    const otherRevenue = sorted.slice(8).reduce((sum, [, v]) => sum + v, 0);
+    if (otherRevenue > 0) top.push(['\u05D0\u05D7\u05E8', otherRevenue]);
+
+    const labels = top.map(([k]) => k);
+    const data = top.map(([, v]) => Math.round(v * 100) / 100);
+    const colors = top.map(([k], i) => {
+      const c = getSourceColor(k);
+      return c !== defaultColor ? c.chart : chartPalette[i % chartPalette.length];
+    });
+
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: '#fff',
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'right',
+            rtl: true,
+            labels: { font: { size: 12 }, padding: 12 },
+          },
+          tooltip: {
+            rtl: true,
+            callbacks: {
+              label: (ctx) => `${ctx.label}: \u20AA${ctx.parsed.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function renderLineChart() {
+    // Group by date
+    const groups = {};
+    allRows.forEach((row) => {
+      if (!groups[row.date]) groups[row.date] = 0;
+      groups[row.date] += row.revenue;
+    });
+
+    const sorted = Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+    const labels = sorted.map(([k]) => k);
+    const data = sorted.map(([, v]) => Math.round(v * 100) / 100);
+
+    const ctx = document.getElementById('lineChart').getContext('2d');
+    if (lineChart) lineChart.destroy();
+    lineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: '\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA',
+          data,
+          borderColor: '#4f46e5',
+          backgroundColor: 'rgba(79, 70, 229, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            rtl: true,
+            callbacks: {
+              label: (ctx) => `\u20AA${ctx.parsed.y.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 15, font: { size: 11 } },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (v) => '\u20AA' + v.toLocaleString(),
+              font: { size: 11 },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -185,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
   exportBtn.addEventListener('click', () => {
     if (filteredRows.length === 0) return;
 
-    const headers = ['תאריך', 'מזהה עסקה', 'מקור ראשון', 'ערוץ ראשון', 'קמפיין ראשון', 'מקור סשן', 'ערוץ סשן', 'קמפיין (UTM)', 'שם מוצר', 'הכנסה'];
+    const headers = ['\u05EA\u05D0\u05E8\u05D9\u05DA', '\u05DE\u05D6\u05D4\u05D4 \u05E2\u05E1\u05E7\u05D4', '\u05DE\u05E7\u05D5\u05E8 \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05E2\u05E8\u05D5\u05E5 \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05E7\u05DE\u05E4\u05D9\u05D9\u05DF \u05E8\u05D0\u05E9\u05D5\u05DF', '\u05DE\u05E7\u05D5\u05E8 \u05E1\u05E9\u05DF', '\u05E2\u05E8\u05D5\u05E5 \u05E1\u05E9\u05DF', '\u05E7\u05DE\u05E4\u05D9\u05D9\u05DF (UTM)', '\u05E9\u05DD \u05DE\u05D5\u05E6\u05E8', '\u05D4\u05DB\u05E0\u05E1\u05D4'];
     const keys = ['date', 'transactionId', 'firstSource', 'firstMedium', 'firstCampaign', 'source', 'medium', 'campaign', 'itemName', 'revenue'];
 
     const csvRows = [
