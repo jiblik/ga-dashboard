@@ -356,27 +356,56 @@ document.addEventListener('DOMContentLoaded', () => {
     renderLineChart();
   }
 
+  // Color mapping for source/medium combos in pie chart
+  const sourceMediumColors = {
+    'google / organic': '#34a853',
+    'google / cpc': '#fbbc04',
+    'google / paid': '#fbbc04',
+    'facebook / paid_social': '#1877f2',
+    'facebook / cpc': '#1877f2',
+    'facebook / referral': '#4267b2',
+    'fb / paid_social': '#1877f2',
+    'meta / paid_social': '#1877f2',
+    'm.facebook.com / referral': '#4267b2',
+    '(direct) / (none)': '#9c27b0',
+    'newsletter / email': '#ff9800',
+    'tiktok / paid_social': '#fe2c55',
+    'bing / organic': '#00897b',
+    'youtube / referral': '#ff0000',
+    'instagram / paid_social': '#e1306c',
+    'ig / paid_social': '#e1306c',
+  };
+
+  function getSourceMediumColor(label, index) {
+    const key = label.toLowerCase();
+    if (sourceMediumColors[key]) return sourceMediumColors[key];
+    // Try matching just the source part
+    const src = key.split(' / ')[0];
+    const c = getSourceColor(src);
+    if (c !== defaultColor) return c.chart;
+    return chartPalette[index % chartPalette.length];
+  }
+
   function renderPieChart() {
-    // Group by source
+    // Group by source + medium for separation (e.g. google organic vs google cpc)
     const groups = {};
     allRows.forEach((row) => {
       const src = row.firstSource || '(not set)';
-      if (!groups[src]) groups[src] = 0;
-      groups[src] += row.revenue;
+      const med = row.firstMedium || '(not set)';
+      const key = `${src} / ${med}`;
+      if (!groups[key]) groups[key] = 0;
+      groups[key] += row.revenue;
     });
 
     const sorted = Object.entries(groups).sort((a, b) => b[1] - a[1]);
-    // Show top 8, rest as "other"
-    const top = sorted.slice(0, 8);
-    const otherRevenue = sorted.slice(8).reduce((sum, [, v]) => sum + v, 0);
+    // Show top 10, rest as "other"
+    const top = sorted.slice(0, 10);
+    const otherRevenue = sorted.slice(10).reduce((sum, [, v]) => sum + v, 0);
     if (otherRevenue > 0) top.push(['\u05D0\u05D7\u05E8', otherRevenue]);
 
     const labels = top.map(([k]) => k);
     const data = top.map(([, v]) => Math.round(v * 100) / 100);
-    const colors = top.map(([k], i) => {
-      const c = getSourceColor(k);
-      return c !== defaultColor ? c.chart : chartPalette[i % chartPalette.length];
-    });
+    const colors = top.map(([k], i) => getSourceMediumColor(k, i));
 
     const ctx = document.getElementById('pieChart').getContext('2d');
     if (pieChart) pieChart.destroy();
